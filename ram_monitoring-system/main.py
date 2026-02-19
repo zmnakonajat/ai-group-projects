@@ -4,7 +4,7 @@ from core.message_bus import MessageBus
 from core.message import Message
 from agents.monitor_agent import MonitorAgent
 from agents.alert_agent import AlertAgent
-# from agents.email_agent import EmailAgent
+from agents.email_agent import EmailAgent
 
 ram_high_since = None
 email_sent = False
@@ -69,7 +69,7 @@ def main():
     agents = [
         MonitorAgent(bus),
         AlertAgent(bus),
-        # EmailAgent(bus),
+        EmailAgent(bus),
     ]
 
     threading.Thread(target=bus.start_routing, name="MessageBus", daemon=True).start()
