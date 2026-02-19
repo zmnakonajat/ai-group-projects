@@ -1,129 +1,68 @@
 """
-Alert Agent - Simple Version
+Alert Agent
 
-Shows popup warning when RAM is high.
-Plays sound to get user's attention.
-
-Easy to understand and explain!
+PERCEIVES: RAM_HIGH / RAM_NORMAL messages from the bus
+ACTS: Shows popup + plays sound
 """
 
-import psutil
 import time
-import tkinter as tk
-from tkinter import messagebox
-import winsound  # For Windows beep sound (built-in)
-
-CHECK_INTERVAL = 10  # Check every 10 seconds
-RAM_THRESHOLD = 30  # Alert if RAM > 80%
-
-alert_shown = False  # Have we already shown alert?
+import threading
+from core.base_agent import BaseAgent
+from core.message_bus import MessageBus
 
 
-def get_ram_percent():
-    """Get current RAM percentage"""
-    return psutil.virtual_memory().percent
+class AlertAgent(BaseAgent):
 
+    def __init__(self, bus: MessageBus):
+        super().__init__("AlertAgent", bus)
+        self.bus.subscribe("RAM_HIGH", self.on_ram_high)
+        self.bus.subscribe("RAM_NORMAL", self.on_ram_normal)
 
-def get_top_processes(n=3):
-    """Get top N processes using most RAM"""
-    processes = []
-
-    for proc in psutil.process_iter(['name', 'memory_percent']):
-        try:
-            processes.append({
-                'name': proc.info['name'],
-                'memory': round(proc.info['memory_percent'], 2)
-            })
-        except:
-            pass
-
-    processes.sort(key=lambda x: x['memory'], reverse=True)
-    return processes[:n]
-
-
-def play_alert_sound():
-    try:
-
-        winsound.Beep(1000, 500)  # 1000 Hz for 500ms
-    except:
-        print("🔊 (Alert sound)")
-
-
-def show_popup(ram_percent, top_processes):
-
-    # Create invisible root window
-    root = tk.Tk()
-    root.withdraw()  # Hide the root window
-
-    # Build message
-    message = f"⚠️  HIGH RAM USAGE DETECTED! ⚠️\n\n"
-    message += f"RAM Usage: {ram_percent}%\n\n"
-    message += "Top processes:\n"
-
-    for i, proc in enumerate(top_processes, 1):
-        message += f"  {i}. {proc['name']}: {proc['memory']}%\n"
-
-    message += "\nPlease close some programs!"
-
-    # Show warning popup
-    messagebox.showwarning("RAM Alert", message)
-
-    # Clean up
-    root.destroy()
-
-
-def check_and_alert():
-
-    global alert_shown
-
-    # PERCEIVE - Check environment
-    ram = get_ram_percent()
-
-    # DECIDE - Is action needed?
-    if ram >= RAM_THRESHOLD:
-        # RAM is high!
-        if not alert_shown:
-            print(f"⚠️  HIGH RAM: {ram}% - Showing alert!")
-
-            processes = get_top_processes(3)
-
-            play_alert_sound()  # Sound
-            show_popup(ram, processes)  # Popup
-
-            alert_shown = True
-            print("✓ Alert shown to user")
-        else:
-            print(f"⚠️  HIGH RAM: {ram}% (Alert already shown)")
-    else:
-        # RAM is normal
-        if alert_shown:
-            print(f"✓ RAM back to normal: {ram}%")
-            alert_shown = False
-        else:
-            print(f"✓ RAM normal: {ram}%")
-
-
-def alert_agent_loop():
-
-    print("=" * 50)
-    print("ALERT AGENT STARTED")
-    print(f"Checking RAM every {CHECK_INTERVAL} seconds")
-    print(f"Will alert if RAM > {RAM_THRESHOLD}%")
-    print("Press Ctrl+C to stop")
-    print("=" * 50)
-    print()
-
-    try:
+    def run(self):
+        print(f"[{self.name}] Ready. Waiting for events...")
         while True:
-            # Perception-Action cycle
-            check_and_alert()
+            time.sleep(1)
 
-            # Sleep before next check
-            time.sleep(CHECK_INTERVAL)
+    def on_ram_high(self, message):
+        ram = message.payload["ram_percent"]
+        processes = message.payload["top_processes"]
+        print(f"[{self.name}] ⚠ RAM HIGH ({ram}%) — showing alert!")
+        self.play_sound()
+        self.show_popup(ram, processes)
 
-    except KeyboardInterrupt:
-        print("\n\nAlert Agent stopped!")
+    def on_ram_normal(self, message):
+        ram = message.payload["ram_percent"]
+        print(f"[{self.name}] ✓ RAM normal ({ram}%) — alert cleared")
+
+    def show_popup(self, ram, processes):
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            message = f"⚠️  HIGH RAM USAGE DETECTED! ⚠️\n\n"
+            message += f"RAM Usage: {ram}%\n\n"
+            message += "Top processes:\n"
+            for i, proc in enumerate(processes, 1):
+                message += f"  {i}. {proc['name']}: {proc['memory']}%\n"
+            message += "\nPlease close some programs!"
+            messagebox.showwarning("RAM Alert", message)
+            root.destroy()
+        except Exception as e:
+            print(f"[{self.name}] Popup failed: {e}")
+
+    def play_sound(self):
+        try:
+            import winsound
+            winsound.Beep(1000, 500)
+        except:
+            print(f"[{self.name}] 🔊 alert sound")
 
 
+# ============ STANDALONE TEST ============
 if __name__ == "__main__":
-    alert_agent_loop()
+    from core.message_bus import MessageBus
+    bus = MessageBus()
+    agent = AlertAgent(bus)
+    threading.Thread(target=bus.start_routing, daemon=True).start()
+    agent.run()
