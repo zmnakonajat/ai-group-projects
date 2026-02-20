@@ -32,7 +32,10 @@ class DashboardAgent(BaseAgent):
     def run(self):
         print(f"[{self.name}] Starting dashboard on http://localhost:5000")
         app.config['agent'] = self
-        threading.Thread(target=lambda: app.run(port=5000, debug=False), daemon=True).start()
+        threading.Thread(
+            target=lambda: app.run(port=5000, debug=False, use_reloader=False),
+            daemon=True
+        ).start()
         while True:
             time.sleep(1)
 

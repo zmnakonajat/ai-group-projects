@@ -1,11 +1,13 @@
 import threading
 import time
+import os
 from core.message_bus import MessageBus
 from core.message import Message
 from agents.monitor_agent import MonitorAgent
 from agents.alert_agent import AlertAgent
 from agents.email_agent import EmailAgent
 from agents.dashboard_agent import DashboardAgent
+from agents.logger_agent import LoggerAgent
 
 ram_high_since = None
 email_sent = False
@@ -72,6 +74,7 @@ def main():
         AlertAgent(bus),
         EmailAgent(bus),
         DashboardAgent(bus),
+        LoggerAgent(bus),
 
     ]
 
@@ -88,6 +91,8 @@ def main():
     except KeyboardInterrupt:
         bus.stop()
         print("\n[MAIN] System stopped.")
+        import os
+        os._exit(0)
 
 
 if __name__ == "__main__":
