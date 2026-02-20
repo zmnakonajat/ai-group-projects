@@ -8,6 +8,7 @@ from agents.alert_agent import AlertAgent
 from agents.email_agent import EmailAgent
 from agents.dashboard_agent import DashboardAgent
 from agents.logger_agent import LoggerAgent
+from agents.recovery_agent import RestartAgent
 
 ram_high_since = None
 email_sent = False
@@ -75,6 +76,7 @@ def main():
         EmailAgent(bus),
         DashboardAgent(bus),
         LoggerAgent(bus),
+        RestartAgent(bus),
 
     ]
 
