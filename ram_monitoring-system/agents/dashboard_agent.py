@@ -7,12 +7,14 @@ ACTS: Serves live RAM data via Flask API
 
 import time
 import threading
+import logging
 from flask import Flask, jsonify, render_template_string
 from core.base_agent import BaseAgent
 from core.message_bus import MessageBus
 
 app = Flask(__name__)
-
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 class DashboardAgent(BaseAgent):
 
@@ -38,6 +40,7 @@ class DashboardAgent(BaseAgent):
         ).start()
         while True:
             time.sleep(1)
+
 
     def on_ram_data(self, message):
         self.latest["ram_percent"] = message.payload["ram_percent"]

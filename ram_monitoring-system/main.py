@@ -20,6 +20,7 @@ def on_ram_data(message):
     ram = message.payload['ram_percent']
     processes = message.payload['top_processes']
 
+
     if ram >= 50:
         if ram_high_since is None:
             ram_high_since = time.time()
@@ -33,7 +34,7 @@ def on_ram_data(message):
 
         duration = time.time() - ram_high_since
 
-        if duration >= 70 and not email_sent:
+        if duration >= 20 and not email_sent:
             email_sent = True
             bus.publish(Message(
                 event_type="SEND_EMAIL",
@@ -41,7 +42,7 @@ def on_ram_data(message):
                 sender="main"
             ))
 
-        if duration >= 110 and not restart_triggered:
+        if duration >= 30 and not restart_triggered:
             restart_triggered = True
             bus.publish(Message(
                 event_type="RESTART",
